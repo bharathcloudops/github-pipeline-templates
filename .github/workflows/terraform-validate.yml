@@ -2,7 +2,7 @@
 # SHARED TERRAFORM VALIDATION WORKFLOW
 #==============================================================================
 
-name: Shared Terraform validation
+name: 11 - Shared Terraform validation
 
 #==============================================================================
 # WORKFLOW INPUTS
@@ -20,6 +20,11 @@ on:
         required: false
         type: string
         default: 1.10.5
+      runner_labels_json:
+        description: JSON array of runner labels used by the validation job
+        required: false
+        type: string
+        default: '["ubuntu-latest"]'
 
 #==============================================================================
 # WORKFLOW PERMISSIONS
@@ -34,24 +39,29 @@ permissions:
 
 jobs:
   validate:
-    name: Terraform validation
-    runs-on: ubuntu-latest
+    name: 01 - Terraform validation
+    runs-on: ${{ fromJSON(inputs.runner_labels_json) }}
     timeout-minutes: 10
 
     steps:
-      - name: Checkout repository
+      - name: 01 - Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
-      - name: Set up Terraform
+      - name: 02 - Set up Terraform
         uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e
         with:
           terraform_version: ${{ inputs.terraform_version }}
 
-      - name: Check formatting
+      - name: 03 - Prepare Terraform plugin cache
+        run: |
+          printf 'TF_PLUGIN_CACHE_DIR=%s/terraform-plugin-cache\n' "$RUNNER_TOOL_CACHE" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TOOL_CACHE/terraform-plugin-cache"
+
+      - name: 04 - Check formatting
         run: terraform -chdir=${{ inputs.working_directory }} fmt -check -diff
 
-      - name: Initialise without backend
+      - name: 05 - Initialise without backend
         run: terraform -chdir=${{ inputs.working_directory }} init -backend=false -input=false
 
-      - name: Validate configuration
+      - name: 06 - Validate configuration
         run: terraform -chdir=${{ inputs.working_directory }} validate -no-color

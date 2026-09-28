@@ -2,7 +2,7 @@
 # PIPELINE TEMPLATE VALIDATION
 #==============================================================================
 
-name: Template validation
+name: 01 - Template validation
 
 #==============================================================================
 # WORKFLOW TRIGGERS
@@ -32,7 +32,7 @@ concurrency:
 
 jobs:
   validate-template:
-    name: Validate reusable workflow
+    name: 01 - Validate reusable workflow
     uses: ./.github/workflows/terraform-validate.yml
     with:
       working_directory: tests/fixtures/terraform-basic
@@ -40,7 +40,7 @@ jobs:
       contents: read
 
   validate-shell-template:
-    name: Validate shell workflow
+    name: 02 - Validate shell workflow
     uses: ./.github/workflows/shell-validate.yml
     with:
       search_path: scripts
@@ -49,22 +49,22 @@ jobs:
       contents: read
 
   validate-run-command-secrets:
-    name: Validate Run Command secret ordering
+    name: 03 - Validate Run Command secret ordering
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
     steps:
-      - name: Checkout repository
+      - name: 01 - Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
-      - name: Test ordered secret arguments
+      - name: 02 - Test ordered secret arguments
         run: bash tests/test-run-command-secret-order.sh
 
-      - name: Test required check reconciliation
+      - name: 03 - Test required check reconciliation
         run: bash tests/test-required-check-reconciliation.sh
 
   validate-oci-bootstrap-template:
-    name: Validate OCI bootstrap workflow
+    name: 04 - Validate OCI bootstrap workflow
     uses: ./.github/workflows/terraform-oci-bootstrap.yml
     with:
       operation: validate

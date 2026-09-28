@@ -2,7 +2,7 @@
 # SHARED OCI TERRAFORM DEPLOYMENT
 #==============================================================================
 
-name: Shared OCI Terraform deployment
+name: 13 - Shared OCI Terraform deployment
 
 #==============================================================================
 # WORKFLOW INPUTS AND SECRETS
@@ -101,7 +101,7 @@ concurrency:
 
 jobs:
   plan:
-    name: Terraform OCI plan
+    name: 01 - Terraform OCI plan
     runs-on: ${{ fromJSON(inputs.plan_runner_labels_json) }}
     timeout-minutes: 30
 
@@ -134,46 +134,46 @@ jobs:
       OCI_PRIVATE_KEY: ${{ secrets.OCI_PRIVATE_KEY }}
 
     steps:
-      - name: Checkout repository
+      - name: 01 - Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
-      - name: Checkout pipeline template scripts
+      - name: 02 - Checkout pipeline template scripts
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: bharathcloudops/github-pipeline-templates
           ref: ${{ inputs.template_ref }}
           path: .pipeline-templates
 
-      - name: Set up Terraform
+      - name: 03 - Set up Terraform
         uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e
         with:
           terraform_version: ${{ inputs.terraform_version }}
           terraform_wrapper: false
 
-      - name: Validate deployment configuration
+      - name: 04 - Validate deployment configuration
         run: bash .pipeline-templates/scripts/terraform/validate-oci-terraform-inputs.sh
 
-      - name: Configure OCI authentication
+      - name: 05 - Configure OCI authentication
         run: bash .pipeline-templates/scripts/terraform/configure-oci-auth.sh
 
-      - name: Initialise OCI backend
+      - name: 06 - Initialise OCI backend
         run: terraform -chdir="$TF_WORKING_DIRECTORY" init -input=false -backend-config="$TF_BACKEND_CONFIG_FILE"
 
-      - name: Check formatting
+      - name: 07 - Check formatting
         run: terraform -chdir="$TF_WORKING_DIRECTORY" fmt -check -diff
 
-      - name: Validate Terraform configuration
+      - name: 08 - Validate Terraform configuration
         run: terraform -chdir="$TF_WORKING_DIRECTORY" validate -no-color
 
-      - name: Create and show Terraform plan
+      - name: 09 - Create and show Terraform plan
         id: plan
         run: bash .pipeline-templates/scripts/terraform/create-terraform-plan.sh "$TF_WORKING_DIRECTORY" terraform.tfplan
 
-      - name: Create Terraform plan checksum
+      - name: 10 - Create Terraform plan checksum
         if: steps.plan.outputs.has_changes == 'true'
         run: cd "$TF_WORKING_DIRECTORY" && sha256sum terraform.tfplan > terraform.tfplan.sha256
 
-      - name: Upload Terraform plan
+      - name: 11 - Upload Terraform plan
         if: steps.plan.outputs.has_changes == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
@@ -185,7 +185,7 @@ jobs:
           retention-days: 1
 
   apply:
-    name: Apply OCI Terraform changes
+    name: 02 - Apply OCI Terraform changes
     needs: plan
     if: inputs.operation == 'apply' && needs.plan.outputs.has_changes == 'true'
     runs-on: ${{ fromJSON(inputs.apply_runner_labels_json) }}
@@ -220,39 +220,39 @@ jobs:
       OCI_PRIVATE_KEY: ${{ secrets.OCI_PRIVATE_KEY }}
 
     steps:
-      - name: Checkout repository
+      - name: 01 - Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
-      - name: Checkout pipeline template scripts
+      - name: 02 - Checkout pipeline template scripts
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: bharathcloudops/github-pipeline-templates
           ref: ${{ inputs.template_ref }}
           path: .pipeline-templates
 
-      - name: Set up Terraform
+      - name: 03 - Set up Terraform
         uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e
         with:
           terraform_version: ${{ inputs.terraform_version }}
           terraform_wrapper: false
 
-      - name: Validate deployment configuration
+      - name: 04 - Validate deployment configuration
         run: bash .pipeline-templates/scripts/terraform/validate-oci-terraform-inputs.sh
 
-      - name: Configure OCI authentication
+      - name: 05 - Configure OCI authentication
         run: bash .pipeline-templates/scripts/terraform/configure-oci-auth.sh
 
-      - name: Initialise OCI backend
+      - name: 06 - Initialise OCI backend
         run: terraform -chdir="$TF_WORKING_DIRECTORY" init -input=false -backend-config="$TF_BACKEND_CONFIG_FILE"
 
-      - name: Download Terraform plan
+      - name: 07 - Download Terraform plan
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: terraform-plan
           path: ${{ inputs.working_directory }}
 
-      - name: Verify Terraform plan checksum
+      - name: 08 - Verify Terraform plan checksum
         run: cd "$TF_WORKING_DIRECTORY" && sha256sum --check terraform.tfplan.sha256
 
-      - name: Apply Terraform plan and verify state
+      - name: 09 - Apply Terraform plan and verify state
         run: bash .pipeline-templates/scripts/terraform/apply-terraform-plan.sh "$TF_WORKING_DIRECTORY" terraform.tfplan

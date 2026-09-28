@@ -2,7 +2,7 @@
 # SHARED OCI RUN COMMAND WORKFLOW
 #==============================================================================
 
-name: Shared OCI Run Command
+name: 15 - Shared OCI Run Command
 
 #==============================================================================
 # WORKFLOW INPUTS AND SECRETS
@@ -106,7 +106,7 @@ permissions:
 
 jobs:
   run-command:
-    name: OCI Run Command
+    name: 01 - OCI Run Command
     runs-on: ${{ fromJSON(inputs.runner_labels_json) }}
     timeout-minutes: ${{ inputs.job_timeout_minutes }}
     environment: ${{ inputs.deployment_environment }}
@@ -137,37 +137,37 @@ jobs:
       TEMPLATE_REF: ${{ inputs.template_ref }}
 
     steps:
-      - name: Checkout pipeline template scripts
+      - name: 01 - Checkout pipeline template scripts
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: bharathcloudops/github-pipeline-templates
           ref: ${{ inputs.template_ref }}
           path: .pipeline-templates
 
-      - name: Checkout versioned host automation
+      - name: 02 - Checkout versioned host automation
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: ${{ inputs.automation_repository }}
           ref: ${{ inputs.automation_ref }}
           path: .host-automation
 
-      - name: Validate Run Command configuration
+      - name: 03 - Validate Run Command configuration
         run: bash .pipeline-templates/scripts/oci/validate-run-command.sh
 
-      - name: Install pinned OCI CLI
+      - name: 04 - Install pinned OCI CLI
         run: bash .pipeline-templates/scripts/oci/install-cli.sh
 
-      - name: Configure OCI authentication
+      - name: 05 - Configure OCI authentication
         run: bash .pipeline-templates/scripts/oci/configure-auth.sh
 
-      - name: Load protected script argument
+      - name: 06 - Load protected script argument
         if: inputs.vault_secret_name != '' || inputs.additional_vault_secret_name != '' || inputs.tertiary_vault_secret_name != ''
         run: bash .pipeline-templates/scripts/oci/load-vault-secret-argument.sh
 
-      - name: Dispatch and wait for commands
+      - name: 07 - Dispatch and wait for commands
         run: bash .pipeline-templates/scripts/oci/execute-run-command.sh
 
-      - name: Upload Run Command results
+      - name: 08 - Upload Run Command results
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:

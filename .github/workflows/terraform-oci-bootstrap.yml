@@ -2,7 +2,7 @@
 # SHARED OCI TERRAFORM BOOTSTRAP WORKFLOW
 #==============================================================================
 
-name: Shared OCI Terraform bootstrap
+name: 14 - Shared OCI Terraform bootstrap
 
 #==============================================================================
 # WORKFLOW INPUTS AND SECRETS
@@ -75,7 +75,7 @@ concurrency:
 
 jobs:
   plan:
-    name: Terraform OCI bootstrap
+    name: 01 - Terraform OCI bootstrap
     runs-on: ${{ fromJSON(inputs.runner_labels_json) }}
     timeout-minutes: 30
 
@@ -95,54 +95,54 @@ jobs:
       OCI_PRIVATE_KEY: ${{ secrets.OCI_PRIVATE_KEY }}
 
     steps:
-      - name: Checkout repository
+      - name: 01 - Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
-      - name: Checkout pipeline template scripts
+      - name: 02 - Checkout pipeline template scripts
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: bharathcloudops/github-pipeline-templates
           ref: ${{ inputs.template_ref }}
           path: .pipeline-templates
 
-      - name: Set up Terraform
+      - name: 03 - Set up Terraform
         uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e
         with:
           terraform_version: ${{ inputs.terraform_version }}
           terraform_wrapper: false
 
-      - name: Validate deployment configuration
+      - name: 04 - Validate deployment configuration
         if: inputs.operation != 'validate'
         run: bash .pipeline-templates/scripts/terraform/validate-oci-bootstrap-inputs.sh
 
-      - name: Configure OCI authentication
+      - name: 05 - Configure OCI authentication
         if: inputs.operation != 'validate'
         run: bash .pipeline-templates/scripts/terraform/configure-oci-auth.sh
 
-      - name: Initialise bootstrap with local state
+      - name: 06 - Initialise bootstrap with local state
         if: inputs.operation == 'validate' || inputs.backend_config_file == ''
         run: terraform -chdir="$TF_WORKING_DIRECTORY" init -backend=false -input=false
 
-      - name: Initialise bootstrap with OCI state
+      - name: 07 - Initialise bootstrap with OCI state
         if: inputs.operation != 'validate' && inputs.backend_config_file != ''
         run: terraform -chdir="$TF_WORKING_DIRECTORY" init -input=false -backend-config="$TF_BACKEND_CONFIG_FILE"
 
-      - name: Check formatting
+      - name: 08 - Check formatting
         run: terraform -chdir="$TF_WORKING_DIRECTORY" fmt -check -diff
 
-      - name: Validate bootstrap configuration
+      - name: 09 - Validate bootstrap configuration
         run: terraform -chdir="$TF_WORKING_DIRECTORY" validate -no-color
 
-      - name: Create and show bootstrap plan
+      - name: 10 - Create and show bootstrap plan
         id: plan
         if: inputs.operation != 'validate'
         run: bash .pipeline-templates/scripts/terraform/create-terraform-plan.sh "$TF_WORKING_DIRECTORY" bootstrap.tfplan
 
-      - name: Create bootstrap plan checksum
+      - name: 11 - Create bootstrap plan checksum
         if: inputs.operation != 'validate' && steps.plan.outputs.has_changes == 'true'
         run: cd "$TF_WORKING_DIRECTORY" && sha256sum bootstrap.tfplan > bootstrap.tfplan.sha256
 
-      - name: Upload bootstrap plan
+      - name: 12 - Upload bootstrap plan
         if: inputs.operation != 'validate' && steps.plan.outputs.has_changes == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
@@ -154,7 +154,7 @@ jobs:
           retention-days: 1
 
   apply:
-    name: Apply OCI bootstrap changes
+    name: 02 - Apply OCI bootstrap changes
     needs: plan
     if: inputs.operation == 'apply' && needs.plan.outputs.has_changes == 'true'
     runs-on: [self-hosted, bharathcloudops, oci-platform, deploy]
@@ -173,23 +173,23 @@ jobs:
       TF_BACKEND_CONFIG_FILE: ${{ inputs.backend_config_file }}
 
     steps:
-      - name: Checkout repository
+      - name: 01 - Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
-      - name: Checkout pipeline template scripts
+      - name: 02 - Checkout pipeline template scripts
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: bharathcloudops/github-pipeline-templates
           ref: ${{ inputs.template_ref }}
           path: .pipeline-templates
 
-      - name: Set up Terraform
+      - name: 03 - Set up Terraform
         uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e
         with:
           terraform_version: ${{ inputs.terraform_version }}
           terraform_wrapper: false
 
-      - name: Validate deployment configuration
+      - name: 04 - Validate deployment configuration
         run: bash .pipeline-templates/scripts/terraform/validate-oci-bootstrap-inputs.sh
         env:
           TF_VAR_tenancy_ocid: ${{ secrets.OCI_TENANCY_OCID }}
@@ -197,7 +197,7 @@ jobs:
           OCI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
           OCI_PRIVATE_KEY: ${{ secrets.OCI_PRIVATE_KEY }}
 
-      - name: Configure OCI authentication
+      - name: 05 - Configure OCI authentication
         run: bash .pipeline-templates/scripts/terraform/configure-oci-auth.sh
         env:
           TF_VAR_tenancy_ocid: ${{ secrets.OCI_TENANCY_OCID }}
@@ -205,22 +205,22 @@ jobs:
           OCI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
           OCI_PRIVATE_KEY: ${{ secrets.OCI_PRIVATE_KEY }}
 
-      - name: Initialise bootstrap with local state
+      - name: 06 - Initialise bootstrap with local state
         if: inputs.backend_config_file == ''
         run: terraform -chdir="$TF_WORKING_DIRECTORY" init -backend=false -input=false
 
-      - name: Initialise bootstrap with OCI state
+      - name: 07 - Initialise bootstrap with OCI state
         if: inputs.backend_config_file != ''
         run: terraform -chdir="$TF_WORKING_DIRECTORY" init -input=false -backend-config="$TF_BACKEND_CONFIG_FILE"
 
-      - name: Download bootstrap plan
+      - name: 08 - Download bootstrap plan
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: oci-bootstrap-plan
           path: ${{ inputs.working_directory }}
 
-      - name: Verify bootstrap plan checksum
+      - name: 09 - Verify bootstrap plan checksum
         run: cd "$TF_WORKING_DIRECTORY" && sha256sum --check bootstrap.tfplan.sha256
 
-      - name: Apply bootstrap plan and verify state
+      - name: 10 - Apply bootstrap plan and verify state
         run: bash .pipeline-templates/scripts/terraform/apply-oci-bootstrap-plan.sh "$TF_WORKING_DIRECTORY" "$TF_BACKEND_KEY" bootstrap.tfplan "$TF_BACKEND_CONFIG_FILE"

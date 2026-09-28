@@ -62,6 +62,7 @@ TERRAFORM VALIDATION INPUTS
 |---|---|---|---|
 | `working_directory` | Yes | None | Terraform root or module directory |
 | `terraform_version` | No | `1.10.5` | Terraform CLI version used for validation |
+| `runner_labels_json` | No | `["ubuntu-latest"]` | JSON runner labels; private repositories use the OCI `validate` runner |
 
 ```yaml
 jobs:
@@ -70,11 +71,19 @@ jobs:
     with:
       working_directory: network/prd
       terraform_version: 1.15.9
+      runner_labels_json: '["self-hosted","bharathcloudops","oci-platform","validate"]'
     permissions:
       contents: read
 ```
 
 The validation template never uses cloud credentials and never runs `terraform plan` or `terraform apply`.
+
+## 🏃 Runner Policy
+
+- Private repositories use the OCI `validate` runner for checks and the OCI `deploy` runner for changes.
+- Public repositories keep `ubuntu-latest` so untrusted pull requests cannot reach the OCI host.
+- The runner-management workflow keeps a GitHub-hosted recovery path so runners can be restored when offline.
+- Terraform providers reuse the persistent runner tool cache to reduce download time.
 
 <!--
 ==============================================================================
