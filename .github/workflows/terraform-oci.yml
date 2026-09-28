@@ -43,6 +43,16 @@ on:
         required: false
         type: string
         default: production
+      plan_runner_labels_json:
+        description: JSON array of labels for the Terraform plan runner
+        required: false
+        type: string
+        default: '["self-hosted","bharathcloudops","oci-platform","validate"]'
+      apply_runner_labels_json:
+        description: JSON array of labels for the Terraform apply runner
+        required: false
+        type: string
+        default: '["self-hosted","bharathcloudops","oci-platform","deploy"]'
     secrets:
       OCI_TENANCY_OCID:
         required: true
@@ -62,7 +72,7 @@ on:
         required: false
       JENKINS_GITHUB_TOKEN:
         required: false
-      GITHUB_RUNNER_TOKEN:
+      OCI_GITHUB_RUNNER_TOKEN:
         required: false
       MONITORING_SMTP_APP_PASSWORD:
         required: false
@@ -85,7 +95,7 @@ concurrency:
 jobs:
   plan:
     name: Terraform OCI plan
-    runs-on: [self-hosted, bharathcloudops, oci-platform, validate]
+    runs-on: ${{ fromJSON(inputs.plan_runner_labels_json) }}
     timeout-minutes: 30
 
     outputs:
@@ -104,7 +114,7 @@ jobs:
       TF_VAR_cloudflare_account_id: ${{ inputs.cloudflare_account_id }}
       TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       TF_VAR_jenkins_github_token: ${{ secrets.JENKINS_GITHUB_TOKEN }}
-      TF_VAR_github_runner_token: ${{ secrets.GITHUB_RUNNER_TOKEN }}
+      TF_VAR_github_runner_token: ${{ secrets.OCI_GITHUB_RUNNER_TOKEN }}
       TF_VAR_monitoring_smtp_app_password: ${{ secrets.MONITORING_SMTP_APP_PASSWORD }}
       TF_VAR_oci_fingerprint: ${{ secrets.OCI_FINGERPRINT }}
       TF_VAR_oci_private_key: ${{ secrets.OCI_PRIVATE_KEY }}
@@ -169,7 +179,7 @@ jobs:
     name: Apply OCI Terraform changes
     needs: plan
     if: inputs.operation == 'apply' && needs.plan.outputs.has_changes == 'true'
-    runs-on: [self-hosted, bharathcloudops, oci-platform, deploy]
+    runs-on: ${{ fromJSON(inputs.apply_runner_labels_json) }}
     timeout-minutes: 30
     environment: ${{ inputs.deployment_environment }}
 
@@ -189,7 +199,7 @@ jobs:
       TF_VAR_cloudflare_account_id: ${{ inputs.cloudflare_account_id }}
       TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       TF_VAR_jenkins_github_token: ${{ secrets.JENKINS_GITHUB_TOKEN }}
-      TF_VAR_github_runner_token: ${{ secrets.GITHUB_RUNNER_TOKEN }}
+      TF_VAR_github_runner_token: ${{ secrets.OCI_GITHUB_RUNNER_TOKEN }}
       TF_VAR_monitoring_smtp_app_password: ${{ secrets.MONITORING_SMTP_APP_PASSWORD }}
       TF_VAR_oci_fingerprint: ${{ secrets.OCI_FINGERPRINT }}
       TF_VAR_oci_private_key: ${{ secrets.OCI_PRIVATE_KEY }}
