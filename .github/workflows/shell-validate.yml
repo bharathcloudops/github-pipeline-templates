@@ -46,7 +46,7 @@ jobs:
       - name: Checkout pipeline template scripts
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          repository: bharathadigopula/github-pipeline-templates
+          repository: bharathcloudops/github-pipeline-templates
           ref: ${{ inputs.template_ref }}
           path: .pipeline-templates
 

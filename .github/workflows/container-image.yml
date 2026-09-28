@@ -1,0 +1,132 @@
+#==============================================================================
+# SHARED CONTAINER IMAGE PUBLICATION
+#==============================================================================
+
+name: Shared container image publication
+
+#==============================================================================
+# WORKFLOW INPUTS
+#==============================================================================
+
+on:
+  workflow_call:
+    inputs:
+      image_repository:
+        description: GHCR image repository without a tag
+        required: true
+        type: string
+      context:
+        description: Docker build context
+        required: false
+        type: string
+        default: .
+      dockerfile:
+        description: Dockerfile path
+        required: false
+        type: string
+        default: Dockerfile
+      target:
+        description: Optional Docker build target
+        required: false
+        type: string
+        default: ""
+      validation_command:
+        description: Repository-owned command executed before the image build
+        required: false
+        type: string
+        default: ""
+      publish:
+        description: Publish the scanned image to GHCR
+        required: true
+        type: boolean
+      deployment_environment:
+        description: GitHub environment used for publication
+        required: false
+        type: string
+        default: production
+    outputs:
+      image:
+        description: Published image reference with immutable digest
+        value: ${{ jobs.image.outputs.image }}
+      digest:
+        description: Published image digest
+        value: ${{ jobs.image.outputs.digest }}
+
+#==============================================================================
+# WORKFLOW PERMISSIONS AND CONCURRENCY
+#==============================================================================
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: container-image-${{ github.repository }}-${{ inputs.image_repository }}
+  cancel-in-progress: false
+
+#==============================================================================
+# BUILD SCAN AND OPTIONAL PUBLISH
+#==============================================================================
+
+jobs:
+  image:
+    name: Build and scan container image
+    runs-on: [self-hosted, bharathcloudops, oci-platform, deploy]
+    timeout-minutes: 90
+    environment: ${{ inputs.deployment_environment }}
+
+    outputs:
+      image: ${{ steps.publish.outputs.image }}
+      digest: ${{ steps.publish.outputs.digest }}
+
+    env:
+      IMAGE_TAG: ${{ inputs.image_repository }}:sha-${{ github.sha }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Validate repository
+        if: inputs.validation_command != ''
+        run: ${{ inputs.validation_command }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069
+
+      - name: Build image for scanning
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
+        with:
+          context: ${{ inputs.context }}
+          file: ${{ inputs.dockerfile }}
+          load: true
+          platforms: linux/arm64
+          push: false
+          tags: ${{ env.IMAGE_TAG }}
+          target: ${{ inputs.target }}
+
+      - name: Scan image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          image-ref: ${{ env.IMAGE_TAG }}
+          format: table
+          exit-code: "1"
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+
+      - name: Log in to GHCR
+        if: inputs.publish
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Publish immutable image
+        id: publish
+        if: inputs.publish
+        run: |
+          docker push "$IMAGE_TAG"
+          digest=$(docker image inspect --format '{{index .RepoDigests 0}}' "$IMAGE_TAG" | cut -d@ -f2)
+          test "$digest" != ""
+          printf 'digest=%s\n' "$digest" >> "$GITHUB_OUTPUT"
+          printf 'image=%s@%s\n' "${IMAGE_TAG%:*}" "$digest" >> "$GITHUB_OUTPUT"
