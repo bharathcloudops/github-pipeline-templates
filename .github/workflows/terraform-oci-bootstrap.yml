@@ -38,6 +38,16 @@ on:
         required: false
         type: string
         default: ""
+      deployment_environment:
+        description: Protected GitHub environment required before Terraform apply
+        required: false
+        type: string
+        default: production
+      runner_labels_json:
+        description: JSON array of labels for the Terraform plan runner
+        required: false
+        type: string
+        default: '["self-hosted","bharathcloudops","oci-platform","validate"]'
     secrets:
       OCI_TENANCY_OCID:
         required: false
@@ -55,6 +65,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: terraform-oci-bootstrap-${{ github.repository }}-${{ inputs.working_directory }}
+  cancel-in-progress: false
+
 #==============================================================================
 # BOOTSTRAP PLAN APPLY AND STATE MIGRATION
 #==============================================================================
@@ -62,7 +76,7 @@ permissions:
 jobs:
   plan:
     name: Terraform OCI bootstrap
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(inputs.runner_labels_json) }}
     timeout-minutes: 30
 
     outputs:
@@ -87,7 +101,7 @@ jobs:
       - name: Checkout pipeline template scripts
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          repository: bharathadigopula/github-pipeline-templates
+          repository: bharathcloudops/github-pipeline-templates
           ref: ${{ inputs.template_ref }}
           path: .pipeline-templates
 
@@ -124,12 +138,18 @@ jobs:
         if: inputs.operation != 'validate'
         run: bash .pipeline-templates/scripts/terraform/create-terraform-plan.sh "$TF_WORKING_DIRECTORY" bootstrap.tfplan
 
+      - name: Create bootstrap plan checksum
+        if: inputs.operation != 'validate' && steps.plan.outputs.has_changes == 'true'
+        run: cd "$TF_WORKING_DIRECTORY" && sha256sum bootstrap.tfplan > bootstrap.tfplan.sha256
+
       - name: Upload bootstrap plan
         if: inputs.operation != 'validate' && steps.plan.outputs.has_changes == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: oci-bootstrap-plan
-          path: ${{ inputs.working_directory }}/bootstrap.tfplan
+          path: |
+            ${{ inputs.working_directory }}/bootstrap.tfplan
+            ${{ inputs.working_directory }}/bootstrap.tfplan.sha256
           if-no-files-found: error
           retention-days: 1
 
@@ -137,8 +157,9 @@ jobs:
     name: Apply OCI bootstrap changes
     needs: plan
     if: inputs.operation == 'apply' && needs.plan.outputs.has_changes == 'true'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, bharathcloudops, oci-platform, deploy]
     timeout-minutes: 30
+    environment: ${{ inputs.deployment_environment }}
 
     permissions:
       contents: read
@@ -158,7 +179,7 @@ jobs:
       - name: Checkout pipeline template scripts
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          repository: bharathadigopula/github-pipeline-templates
+          repository: bharathcloudops/github-pipeline-templates
           ref: ${{ inputs.template_ref }}
           path: .pipeline-templates
 
@@ -197,6 +218,9 @@ jobs:
         with:
           name: oci-bootstrap-plan
           path: ${{ inputs.working_directory }}
+
+      - name: Verify bootstrap plan checksum
+        run: cd "$TF_WORKING_DIRECTORY" && sha256sum --check bootstrap.tfplan.sha256
 
       - name: Apply bootstrap plan and verify state
         run: bash .pipeline-templates/scripts/terraform/apply-oci-bootstrap-plan.sh "$TF_WORKING_DIRECTORY" "$TF_BACKEND_KEY" bootstrap.tfplan "$TF_BACKEND_CONFIG_FILE"

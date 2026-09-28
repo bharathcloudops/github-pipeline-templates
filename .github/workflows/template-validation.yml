@@ -68,6 +68,7 @@ jobs:
     uses: ./.github/workflows/terraform-oci-bootstrap.yml
     with:
       operation: validate
+      runner_labels_json: '["ubuntu-latest"]'
       working_directory: tests/fixtures/terraform-basic
       template_ref: ${{ github.sha }}
     permissions:

@@ -53,6 +53,21 @@ on:
         required: false
         type: number
         default: 300
+      job_timeout_minutes:
+        description: Maximum workflow job duration including OCI polling overhead
+        required: false
+        type: number
+        default: 35
+      runner_labels_json:
+        description: JSON array of runner labels used for the control-plane job
+        required: false
+        type: string
+        default: '["self-hosted","bharathcloudops","oci-platform","deploy"]'
+      deployment_environment:
+        description: Protected GitHub environment required before host mutation
+        required: false
+        type: string
+        default: production
       vault_secret_name:
         description: OCI Vault secret whose current value is appended as the final script argument
         required: false
@@ -92,8 +107,12 @@ permissions:
 jobs:
   run-command:
     name: OCI Run Command
-    runs-on: ubuntu-latest
-    timeout-minutes: 35
+    runs-on: ${{ fromJSON(inputs.runner_labels_json) }}
+    timeout-minutes: ${{ inputs.job_timeout_minutes }}
+    environment: ${{ inputs.deployment_environment }}
+    concurrency:
+      group: oci-run-command-${{ github.repository }}-${{ inputs.display_name }}
+      cancel-in-progress: false
 
     env:
       AUTOMATION_DIRECTORY: ${{ github.workspace }}/.host-automation
@@ -121,7 +140,7 @@ jobs:
       - name: Checkout pipeline template scripts
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          repository: bharathadigopula/github-pipeline-templates
+          repository: bharathcloudops/github-pipeline-templates
           ref: ${{ inputs.template_ref }}
           path: .pipeline-templates
 
