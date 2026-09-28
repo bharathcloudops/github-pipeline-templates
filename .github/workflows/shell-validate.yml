@@ -2,7 +2,7 @@
 # SHARED SHELL VALIDATION WORKFLOW
 #==============================================================================
 
-name: Shared shell validation
+name: 10 - Shared shell validation
 
 #==============================================================================
 # WORKFLOW INPUTS
@@ -21,6 +21,11 @@ on:
         required: false
         type: string
         default: v0.8.0
+      runner_labels_json:
+        description: JSON array of runner labels used by the validation job
+        required: false
+        type: string
+        default: '["ubuntu-latest"]'
 
 #==============================================================================
 # WORKFLOW PERMISSIONS
@@ -35,22 +40,22 @@ permissions:
 
 jobs:
   validate:
-    name: Validate shell scripts
-    runs-on: ubuntu-latest
+    name: 01 - Validate shell scripts
+    runs-on: ${{ fromJSON(inputs.runner_labels_json) }}
     timeout-minutes: 10
 
     steps:
-      - name: Checkout repository
+      - name: 01 - Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
-      - name: Checkout pipeline template scripts
+      - name: 02 - Checkout pipeline template scripts
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: bharathcloudops/github-pipeline-templates
           ref: ${{ inputs.template_ref }}
           path: .pipeline-templates
 
-      - name: Validate script syntax
+      - name: 03 - Validate script syntax
         env:
           SEARCH_PATH: ${{ inputs.search_path }}
         run: bash .pipeline-templates/scripts/validation/validate-shell.sh

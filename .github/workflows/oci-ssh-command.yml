@@ -2,7 +2,7 @@
 # SHARED OCI SSH COMMAND WORKFLOW
 #==============================================================================
 
-name: Shared OCI SSH command
+name: 16 - Shared OCI SSH command
 
 #==============================================================================
 # WORKFLOW INPUTS AND SECRETS
@@ -72,7 +72,7 @@ permissions:
 
 jobs:
   ssh-command:
-    name: OCI SSH command
+    name: 01 - OCI SSH command
     runs-on: [self-hosted, bharathcloudops, oci-platform, deploy]
     timeout-minutes: 30
     concurrency:
@@ -98,40 +98,40 @@ jobs:
       TEMPLATE_REF: ${{ inputs.template_ref }}
 
     steps:
-      - name: Checkout pipeline template scripts
+      - name: 01 - Checkout pipeline template scripts
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: bharathcloudops/github-pipeline-templates
           ref: ${{ inputs.template_ref }}
           path: .pipeline-templates
 
-      - name: Checkout versioned host automation
+      - name: 02 - Checkout versioned host automation
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: ${{ inputs.automation_repository }}
           ref: ${{ inputs.automation_ref }}
           path: .host-automation
 
-      - name: Validate SSH command configuration
+      - name: 03 - Validate SSH command configuration
         run: bash .pipeline-templates/scripts/oci/validate-ssh-command.sh
 
-      - name: Install pinned OCI CLI
+      - name: 04 - Install pinned OCI CLI
         run: bash .pipeline-templates/scripts/oci/install-cli.sh
 
-      - name: Configure OCI authentication
+      - name: 05 - Configure OCI authentication
         run: bash .pipeline-templates/scripts/oci/configure-auth.sh
 
-      - name: Configure host SSH key
+      - name: 06 - Configure host SSH key
         run: bash .pipeline-templates/scripts/oci/configure-ssh-key.sh
 
-      - name: Open temporary SSH access
+      - name: 07 - Open temporary SSH access
         id: access
         run: bash .pipeline-templates/scripts/oci/open-temporary-ssh-access.sh
 
-      - name: Execute versioned SSH automation
+      - name: 08 - Execute versioned SSH automation
         run: bash .pipeline-templates/scripts/oci/execute-ssh-command.sh
 
-      - name: Close temporary SSH access
+      - name: 09 - Close temporary SSH access
         if: always() && steps.access.outputs.nsg_id != ''
         env:
           NSG_ID: ${{ steps.access.outputs.nsg_id }}
@@ -139,7 +139,7 @@ jobs:
           RULE_ID: ${{ steps.access.outputs.rule_id }}
         run: bash .pipeline-templates/scripts/oci/close-temporary-ssh-access.sh
 
-      - name: Upload SSH command results
+      - name: 10 - Upload SSH command results
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
