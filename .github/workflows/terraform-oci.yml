@@ -38,6 +38,11 @@ on:
         required: false
         type: string
         default: ""
+      terraform_target:
+        description: Optional resource address for a deliberately scoped Terraform plan
+        required: false
+        type: string
+        default: ""
       deployment_environment:
         description: Protected GitHub environment required before Terraform apply
         required: false
@@ -109,6 +114,7 @@ jobs:
       TF_OPERATION: ${{ inputs.operation }}
       TF_WORKING_DIRECTORY: ${{ inputs.working_directory }}
       TF_BACKEND_CONFIG_FILE: ${{ inputs.backend_config_file }}
+      TF_TARGET: ${{ inputs.terraform_target }}
       TF_VAR_tenancy_ocid: ${{ secrets.OCI_TENANCY_OCID }}
       TF_VAR_ssh_allowed_cidr: ${{ secrets.SSH_ALLOWED_CIDR }}
       TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
