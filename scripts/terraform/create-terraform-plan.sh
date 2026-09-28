@@ -10,8 +10,18 @@ working_directory=${1:?Missing Terraform working directory}
 plan_file=${2:?Missing Terraform plan file}
 : "${GITHUB_OUTPUT:?Missing GitHub step output file}"
 
+plan_arguments=(
+  -detailed-exitcode
+  -no-color
+  -out="$plan_file"
+)
+
+if [[ -n "${TF_TARGET:-}" ]]; then
+  plan_arguments+=("-target=$TF_TARGET")
+fi
+
 set +e
-terraform -chdir="$working_directory" plan -detailed-exitcode -no-color -out="$plan_file"
+terraform -chdir="$working_directory" plan "${plan_arguments[@]}"
 plan_exit_code=$?
 set -e
 
