@@ -43,6 +43,11 @@ on:
         required: false
         type: string
         default: production
+      runner_labels_json:
+        description: JSON array of labels for the Terraform plan runner
+        required: false
+        type: string
+        default: '["self-hosted","bharathcloudops","oci-platform","validate"]'
     secrets:
       OCI_TENANCY_OCID:
         required: false
@@ -71,7 +76,7 @@ concurrency:
 jobs:
   plan:
     name: Terraform OCI bootstrap
-    runs-on: [self-hosted, bharathcloudops, oci-platform, validate]
+    runs-on: ${{ fromJSON(inputs.runner_labels_json) }}
     timeout-minutes: 30
 
     outputs:
