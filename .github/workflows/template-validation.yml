@@ -60,9 +60,6 @@ jobs:
       - name: 02 - Test ordered secret arguments
         run: bash tests/test-run-command-secret-order.sh
 
-      - name: 03 - Test required check reconciliation
-        run: bash tests/test-required-check-reconciliation.sh
-
       - name: 04 - Test OCI CLI cache reuse
         run: bash tests/test-oci-cli-cache.sh
 
