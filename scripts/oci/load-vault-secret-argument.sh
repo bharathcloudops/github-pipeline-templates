@@ -48,8 +48,8 @@ load_secret() {
     | jq -r '.data."secret-bundle-content".content' \
     | base64 --decode)
 
-  if [[ -z "$secret_value" || ${#secret_value} -gt 255 || "$secret_value" == *$'\n'* || "$secret_value" == *$'\r'* ]]; then
-    printf 'OCI Vault secret must contain one non-empty line of at most 255 characters.\n' >&2
+  if [[ -z "$secret_value" || ${#secret_value} -gt 4096 || "$secret_value" == *$'\n'* || "$secret_value" == *$'\r'* ]]; then
+    printf 'OCI Vault secret must contain one non-empty line of at most 4096 characters.\n' >&2
     exit 1
   fi
 

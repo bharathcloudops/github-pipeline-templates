@@ -153,12 +153,13 @@ OCI DEPLOYMENT INPUTS
 | `backend_config_file` | No | `backend.hcl.example` | Backend configuration file relative to the Terraform root |
 | `cloudflare_account_id` | No | Empty | Cloudflare account identifier exposed as `TF_VAR_cloudflare_account_id` for roots that manage Cloudflare resources |
 
-The OCI deployment workflow requires the four OCI secrets listed above. `SSH_ALLOWED_CIDR` is required only by roots that declare `ssh_allowed_cidr`, `SSH_PUBLIC_KEY` is required only by roots that declare `ssh_public_key`, and `BUDGET_ALERT_RECIPIENTS` is required only by roots that declare `budget_alert_recipients`. Roots that use the Cloudflare provider pass `CLOUDFLARE_API_TOKEN`; roots that manage Backstage credentials pass `BACKSTAGE_SECRET_BUNDLE`; roots that create the Alertmanager SMTP Vault secret pass `MONITORING_SMTP_APP_PASSWORD`. The workflow exposes these only in Plan and Apply as provider environment variables or sensitive Terraform variables.
+The OCI deployment workflow requires the four OCI secrets listed above. `SSH_ALLOWED_CIDR` is required only by roots that declare `ssh_allowed_cidr`, `SSH_PUBLIC_KEY` is required only by roots that declare `ssh_public_key`, and `BUDGET_ALERT_RECIPIENTS` is required only by roots that declare `budget_alert_recipients`. Roots that use the Cloudflare provider pass `CLOUDFLARE_API_TOKEN`; roots that manage application credentials pass `BACKSTAGE_SECRET_BUNDLE` or `CLINIROVA_SECRET_BUNDLE`; roots that create the Alertmanager SMTP Vault secret pass `MONITORING_SMTP_APP_PASSWORD`. The workflow exposes these only in Plan and Apply as provider environment variables or sensitive Terraform variables.
 
 | Optional secret | Terraform or provider input |
 |---|---|
 | `CLOUDFLARE_API_TOKEN` | `CLOUDFLARE_API_TOKEN` |
 | `BACKSTAGE_SECRET_BUNDLE` | `TF_VAR_backstage_secret_bundle` |
+| `CLINIROVA_SECRET_BUNDLE` | `TF_VAR_clinirova_secret_bundle` |
 | `MONITORING_SMTP_APP_PASSWORD` | `TF_VAR_monitoring_smtp_app_password` |
 
 ```yaml

@@ -40,7 +40,8 @@ if [[ "$1 $2 $3" == "vault secret list" ]]; then
   fi
 elif [[ "$1 $2 $3" == "secrets secret-bundle get" ]]; then
   if [[ "$*" == *"ocid1.vaultsecret.oc1.primary"* ]]; then
-    printf '{"data":{"secret-bundle-content":{"content":"cHJpbWFyeS1zZWNyZXQ="}}}\n'
+    primary_secret=$(printf '%0300d' 0 | tr '0' 'p' | base64 | tr -d '\n')
+    jq -cn --arg content "$primary_secret" '{data:{"secret-bundle-content":{content:$content}}}'
   elif [[ "$*" == *"ocid1.vaultsecret.oc1.additional"* ]]; then
     printf '{"data":{"secret-bundle-content":{"content":"YWRkaXRpb25hbC1zZWNyZXQ="}}}\n'
   elif [[ "$*" == *"ocid1.vaultsecret.oc1.tertiary"* ]]; then
@@ -91,6 +92,10 @@ bash "$repository_root/scripts/oci/load-vault-secret-argument.sh"
 while IFS='=' read -r variable_name variable_value; do
   export "$variable_name=$variable_value"
 done < "$GITHUB_ENV"
+if (( ${#RUN_COMMAND_SECRET_ARGUMENT} != 300 )); then
+  printf 'Run Command must accept a single-line secret longer than 255 characters.\n' >&2
+  exit 1
+fi
 bash "$repository_root/scripts/oci/execute-run-command.sh"
 
 #==============================================================================
@@ -98,7 +103,7 @@ bash "$repository_root/scripts/oci/execute-run-command.sh"
 #==============================================================================
 
 command_text=$(jq -r '.source.text' "$CAPTURED_CONTENT")
-expected_line="set -- 'base' 'primary-secret' 'additional-secret' 'tertiary-secret'"
+expected_line="set -- 'base' '$RUN_COMMAND_SECRET_ARGUMENT' 'additional-secret' 'tertiary-secret'"
 if [[ "${command_text%%$'\n'*}" != "$expected_line" ]]; then
   printf 'Run Command secret arguments were appended in the wrong order.\n' >&2
   exit 1
