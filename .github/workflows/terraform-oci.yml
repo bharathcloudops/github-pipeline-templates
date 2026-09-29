@@ -75,7 +75,7 @@ on:
         required: false
       CLOUDFLARE_API_TOKEN:
         required: false
-      JENKINS_GITHUB_TOKEN:
+      BACKSTAGE_SECRET_BUNDLE:
         required: false
       OCI_GITHUB_RUNNER_TOKEN:
         required: false
@@ -121,7 +121,7 @@ jobs:
       TF_VAR_budget_alert_recipients: ${{ secrets.BUDGET_ALERT_RECIPIENTS }}
       TF_VAR_cloudflare_account_id: ${{ inputs.cloudflare_account_id }}
       TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      TF_VAR_jenkins_github_token: ${{ secrets.JENKINS_GITHUB_TOKEN }}
+      TF_VAR_backstage_secret_bundle: ${{ secrets.BACKSTAGE_SECRET_BUNDLE }}
       TF_VAR_github_runner_token: ${{ secrets.OCI_GITHUB_RUNNER_TOKEN }}
       TF_VAR_wordpress_registry_token: ${{ secrets.WORDPRESS_REGISTRY_TOKEN }}
       TF_VAR_monitoring_smtp_app_password: ${{ secrets.MONITORING_SMTP_APP_PASSWORD }}
@@ -207,7 +207,7 @@ jobs:
       TF_VAR_budget_alert_recipients: ${{ secrets.BUDGET_ALERT_RECIPIENTS }}
       TF_VAR_cloudflare_account_id: ${{ inputs.cloudflare_account_id }}
       TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      TF_VAR_jenkins_github_token: ${{ secrets.JENKINS_GITHUB_TOKEN }}
+      TF_VAR_backstage_secret_bundle: ${{ secrets.BACKSTAGE_SECRET_BUNDLE }}
       TF_VAR_github_runner_token: ${{ secrets.OCI_GITHUB_RUNNER_TOKEN }}
       TF_VAR_wordpress_registry_token: ${{ secrets.WORDPRESS_REGISTRY_TOKEN }}
       TF_VAR_monitoring_smtp_app_password: ${{ secrets.MONITORING_SMTP_APP_PASSWORD }}
