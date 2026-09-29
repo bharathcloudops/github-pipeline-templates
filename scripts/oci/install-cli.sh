@@ -20,13 +20,9 @@ if [[ -x "$install_directory/bin/oci" ]] &&
 fi
 
 mkdir -p "$cache_root"
-staging_directory=$(mktemp -d "$cache_root/.${OCI_CLI_VERSION}.XXXXXX")
-trap 'rm -rf "$staging_directory"' EXIT
-python3 -m venv "$staging_directory"
-"$staging_directory/bin/python" -m pip install --disable-pip-version-check --quiet "oci-cli==$OCI_CLI_VERSION"
-[[ "$("$staging_directory/bin/oci" --version 2>&1)" == "$OCI_CLI_VERSION" ]]
 rm -rf "$install_directory"
-mv "$staging_directory" "$install_directory"
-trap - EXIT
+python3 -m venv "$install_directory"
+"$install_directory/bin/python" -m pip install --disable-pip-version-check --quiet "oci-cli==$OCI_CLI_VERSION"
+[[ "$("$install_directory/bin/oci" --version 2>&1)" == "$OCI_CLI_VERSION" ]]
 printf '%s\n' "$install_directory/bin" >> "$GITHUB_PATH"
 "$install_directory/bin/oci" --version
