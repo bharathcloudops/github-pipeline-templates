@@ -60,6 +60,7 @@ while IFS= read -r target; do
 
   printf 'Dispatched %s to %s as %s.\n' "$RUN_COMMAND_DISPLAY_NAME" "$target_name" "$command_id"
   deadline=$(( $(date +%s) + RUN_COMMAND_TIMEOUT_SECONDS + 600 ))
+  output_deadline=0
   result_file="$RUN_COMMAND_RESULTS_DIRECTORY/${target_name}.json"
   target_exit_code=1
 
@@ -76,6 +77,13 @@ while IFS= read -r target; do
         printf '%s\n' "$execution" > "$result_file"
         command_output=$(jq -r '.data.content.text // ""' <<< "$execution")
         if [[ -n "${RUN_COMMAND_REQUIRED_OUTPUT_MARKER:-}" ]] && ! grep -Fq "$RUN_COMMAND_REQUIRED_OUTPUT_MARKER" <<< "$command_output"; then
+          if (( output_deadline == 0 )); then
+            output_deadline=$(( $(date +%s) + 120 ))
+          fi
+          if (( $(date +%s) < output_deadline )); then
+            sleep 5
+            continue
+          fi
           printf 'Required output marker is missing for %s.\n' "$target_name" >&2
         else
           target_exit_code=0
