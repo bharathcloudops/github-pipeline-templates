@@ -14,12 +14,13 @@ mkdir -p "$test_root/bin"
 cat > "$test_root/bin/python3" <<'PYTHON'
 #!/usr/bin/env bash
 set -euo pipefail
-if [[ "$1 $2" == "-m venv" ]]; then
+if [[ "${1:-} ${2:-}" == "-m venv" ]]; then
   mkdir -p "$3/bin"
   cp "$0" "$3/bin/python"
   exit 0
 fi
 printf 'install\n' >> "$OCI_CLI_TEST_INSTALLS"
+printf '%s\n' "$0" > "$(dirname "$0")/../installed-from"
 cat > "$(dirname "$0")/oci" <<EOF
 #!/usr/bin/env bash
 printf '%s\n' "$OCI_CLI_VERSION"
@@ -40,6 +41,13 @@ bash "$repository_root/scripts/oci/install-cli.sh" >/dev/null
 
 if [[ "$(wc -l < "$OCI_CLI_TEST_INSTALLS" | tr -d ' ')" != "1" ]]; then
   printf 'OCI CLI installation was not reused from the persistent cache.\n' >&2
+  exit 1
+fi
+
+installed_from=$(<"$OCI_CLI_CACHE_ROOT/$OCI_CLI_VERSION/installed-from")
+expected_install_path="$OCI_CLI_CACHE_ROOT/$OCI_CLI_VERSION/bin/python"
+if [[ "$installed_from" != "$expected_install_path" ]]; then
+  printf 'OCI CLI was installed before its virtual environment reached the stable cache path.\n' >&2
   exit 1
 fi
 
