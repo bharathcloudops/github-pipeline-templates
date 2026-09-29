@@ -63,6 +63,9 @@ jobs:
       - name: 03 - Test required check reconciliation
         run: bash tests/test-required-check-reconciliation.sh
 
+      - name: 04 - Test OCI CLI cache reuse
+        run: bash tests/test-oci-cli-cache.sh
+
   validate-oci-bootstrap-template:
     name: 04 - Validate OCI bootstrap workflow
     uses: ./.github/workflows/terraform-oci-bootstrap.yml
