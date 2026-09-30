@@ -46,9 +46,7 @@ SUPPORT SCRIPTS
 | `scripts/oci/load-vault-secret-argument.sh` | Retrieve, mask, and export up to three active OCI Vault secrets as ordered protected arguments |
 | `scripts/oci/execute-run-command.sh` | Render, dispatch, monitor, and verify OCI Run Command executions |
 
-Reusable workflows check out the consumer repository by default. The OCI bootstrap workflow therefore checks out this template repository separately at `template_ref` into `.pipeline-templates` before invoking its scripts.
-
-Jenkins validates this repository from `.jenkins/pipelines/validate.groovy` using `jenkins-pipeline-templates v1.4.0`. The job runs on the `platform` agent, enables ANSI console rendering, publishes `continuous-integration/jenkins`, and performs shell, workflow, and repository validation without deployment credentials. The retained GitHub Actions validation workflow also runs on pull requests and `main` and supports manual dispatch.
+Reusable workflows check out the consumer repository by default. The OCI bootstrap workflow therefore checks out this template repository separately at `template_ref` into `.pipeline-templates` before invoking its scripts. Private BharathCoudOps callers pass the OCI `validate` or `deploy` labels explicitly. This public repository validates on GitHub-hosted runners so pull requests cannot execute untrusted code on the production OCI host.
 
 <!--
 ==============================================================================
@@ -62,12 +60,12 @@ TERRAFORM VALIDATION INPUTS
 |---|---|---|---|
 | `working_directory` | Yes | None | Terraform root or module directory |
 | `terraform_version` | No | `1.10.5` | Terraform CLI version used for validation |
-| `runner_labels_json` | No | `["ubuntu-latest"]` | JSON runner labels; private repositories use the OCI `validate` runner |
+| `runner_labels_json` | No | `["ubuntu-latest"]` | JSON runner labels; private BharathCoudOps callers pass the OCI `validate` labels explicitly |
 
 ```yaml
 jobs:
   validate:
-    uses: bharathadigopula/github-pipeline-templates/.github/workflows/terraform-validate.yml@v0.8.11
+    uses: bharathcloudops/github-pipeline-templates/.github/workflows/terraform-validate.yml@v0.9.9
     with:
       working_directory: network/prd
       terraform_version: 1.15.9
@@ -78,11 +76,11 @@ jobs:
 
 The validation template never uses cloud credentials and never runs `terraform plan` or `terraform apply`.
 
-## 🏃 Runner Policy
+## Runner Policy
 
-- Private repositories use the OCI `validate` runner for checks and the OCI `deploy` runner for changes.
-- Public repositories keep `ubuntu-latest` so untrusted pull requests cannot reach the OCI host.
-- The runner-management workflow keeps a GitHub-hosted recovery path so runners can be restored when offline.
+- Private BharathCoudOps repositories use the OCI `validate` runner for checks and the OCI `deploy` runner for changes.
+- Public repositories use GitHub-hosted or repository-scoped runners; the production OCI runners are not exposed to public repositories.
+- Runner recovery is serialised through the runner-management workflow.
 - Terraform providers reuse the persistent runner tool cache to reduce download time.
 
 <!--
@@ -260,7 +258,5 @@ RELEASE POLICY
 - Consumers use immutable release tags, never `main`.
 - The workflow reference and `template_ref` must use the same release tag.
 - Version tags cannot be updated or deleted.
-- Changes to `main` require pull requests and a successful `continuous-integration/jenkins` check.
+- Changes to `main` require pull requests and successful GitHub Actions validation checks.
 - Action dependencies are pinned to full commit SHAs and maintained by Dependabot.
-
-Jenkins shared-library templates are versioned in the separate `jenkins-pipeline-templates` repository. This repository retains GitHub Actions validation and reusable recovery workflows alongside Jenkins validation.
