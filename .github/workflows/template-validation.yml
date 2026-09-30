@@ -50,8 +50,7 @@ jobs:
 
   validate-run-command-secrets:
     name: 03 - Validate Run Command secret ordering
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: [self-hosted, bharathcloudops, oci-platform, validate]
+    runs-on: ubuntu-latest
     timeout-minutes: 5
 
     steps:
@@ -69,7 +68,7 @@ jobs:
     uses: ./.github/workflows/terraform-oci-bootstrap.yml
     with:
       operation: validate
-      runner_labels_json: '["self-hosted","bharathcloudops","oci-platform","validate"]'
+      runner_labels_json: '["ubuntu-latest"]'
       working_directory: tests/fixtures/terraform-basic
       template_ref: ${{ github.sha }}
     permissions:

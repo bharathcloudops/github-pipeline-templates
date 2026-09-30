@@ -25,7 +25,7 @@ on:
         description: JSON array of runner labels used by the validation job
         required: false
         type: string
-        default: '["self-hosted","bharathcloudops","oci-platform","validate"]'
+        default: '["ubuntu-latest"]'
 
 #==============================================================================
 # WORKFLOW PERMISSIONS
@@ -41,7 +41,6 @@ permissions:
 jobs:
   validate:
     name: 01 - Validate shell scripts
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ${{ fromJSON(inputs.runner_labels_json) }}
     timeout-minutes: 10
 

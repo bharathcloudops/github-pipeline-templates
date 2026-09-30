@@ -46,7 +46,7 @@ SUPPORT SCRIPTS
 | `scripts/oci/load-vault-secret-argument.sh` | Retrieve, mask, and export up to three active OCI Vault secrets as ordered protected arguments |
 | `scripts/oci/execute-run-command.sh` | Render, dispatch, monitor, and verify OCI Run Command executions |
 
-Reusable workflows check out the consumer repository by default. The OCI bootstrap workflow therefore checks out this template repository separately at `template_ref` into `.pipeline-templates` before invoking its scripts. GitHub Actions validation runs on the dedicated OCI `validate` runner; workflows skip pull requests from forks so untrusted code cannot execute on self-hosted infrastructure.
+Reusable workflows check out the consumer repository by default. The OCI bootstrap workflow therefore checks out this template repository separately at `template_ref` into `.pipeline-templates` before invoking its scripts. Private BharathCoudOps callers pass the OCI `validate` or `deploy` labels explicitly. This public repository validates on GitHub-hosted runners so pull requests cannot execute untrusted code on the production OCI host.
 
 <!--
 ==============================================================================
@@ -60,12 +60,12 @@ TERRAFORM VALIDATION INPUTS
 |---|---|---|---|
 | `working_directory` | Yes | None | Terraform root or module directory |
 | `terraform_version` | No | `1.10.5` | Terraform CLI version used for validation |
-| `runner_labels_json` | No | `["self-hosted","bharathcloudops","oci-platform","validate"]` | JSON runner labels used by the validation job |
+| `runner_labels_json` | No | `["ubuntu-latest"]` | JSON runner labels; private BharathCoudOps callers pass the OCI `validate` labels explicitly |
 
 ```yaml
 jobs:
   validate:
-    uses: bharathcloudops/github-pipeline-templates/.github/workflows/terraform-validate.yml@v0.9.10
+    uses: bharathcloudops/github-pipeline-templates/.github/workflows/terraform-validate.yml@v0.9.9
     with:
       working_directory: network/prd
       terraform_version: 1.15.9
@@ -78,9 +78,9 @@ The validation template never uses cloud credentials and never runs `terraform p
 
 ## Runner Policy
 
-- All BharathCoudOps repositories use the OCI `validate` runner for checks and the OCI `deploy` runner for changes.
-- Pull requests from forks do not execute on self-hosted runners.
-- Runner recovery requires at least one healthy OCI runner and is serialised through the runner-management workflow.
+- Private BharathCoudOps repositories use the OCI `validate` runner for checks and the OCI `deploy` runner for changes.
+- Public repositories use GitHub-hosted or repository-scoped runners; the production OCI runners are not exposed to public repositories.
+- Runner recovery is serialised through the runner-management workflow.
 - Terraform providers reuse the persistent runner tool cache to reduce download time.
 
 <!--
