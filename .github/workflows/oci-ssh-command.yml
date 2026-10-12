@@ -141,7 +141,7 @@ jobs:
 
       - name: 10 - Upload SSH command results
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: ${{ inputs.display_name }}-results
           path: ${{ env.SSH_COMMAND_RESULTS_DIRECTORY }}
