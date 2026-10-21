@@ -17,6 +17,9 @@ set -euo pipefail
 
 mkdir -p "$RUN_COMMAND_RESULTS_DIRECTORY"
 overall_exit_code=0
+target_names=()
+target_instances=()
+target_commands=()
 
 while IFS= read -r target; do
   target_name=$(jq -r '.name' <<< "$target")
@@ -59,15 +62,33 @@ while IFS= read -r target; do
   fi
 
   printf 'Dispatched %s to %s as %s.\n' "$RUN_COMMAND_DISPLAY_NAME" "$target_name" "$command_id"
-  deadline=$(( $(date +%s) + RUN_COMMAND_TIMEOUT_SECONDS + 600 ))
-  output_deadline=0
-  result_file="$RUN_COMMAND_RESULTS_DIRECTORY/${target_name}.json"
-  target_exit_code=1
+  target_names+=("$target_name")
+  target_instances+=("$instance_id")
+  target_commands+=("$command_id")
+done < <(jq -c '.[]' <<< "$RUN_COMMAND_TARGETS")
 
-  while (( $(date +%s) < deadline )); do
+#==============================================================================
+# PARALLEL COMPLETION POLLING
+#==============================================================================
+
+# Oracle Cloud Agent can take minutes to pick up a command, so every target is
+# dispatched first and polled together instead of waiting on each host in turn.
+deadline=$(( $(date +%s) + RUN_COMMAND_TIMEOUT_SECONDS + 600 ))
+pending=()
+output_deadlines=()
+for index in "${!target_names[@]}"; do
+  pending+=("$index")
+  output_deadlines[index]=0
+done
+
+while (( ${#pending[@]} > 0 && $(date +%s) < deadline )); do
+  still_pending=()
+  for index in ${pending[@]+"${pending[@]}"}; do
+    target_name="${target_names[index]}"
+    result_file="$RUN_COMMAND_RESULTS_DIRECTORY/${target_name}.json"
     execution=$(oci instance-agent command-execution get \
-      --command-id "$command_id" \
-      --instance-id "$instance_id" \
+      --command-id "${target_commands[index]}" \
+      --instance-id "${target_instances[index]}" \
       --region "$OCI_REGION")
     lifecycle_state=$(jq -r '.data."lifecycle-state"' <<< "$execution")
     printf 'Target %s is %s.\n' "$target_name" "$lifecycle_state"
@@ -77,32 +98,37 @@ while IFS= read -r target; do
         printf '%s\n' "$execution" > "$result_file"
         command_output=$(jq -r '.data.content.text // ""' <<< "$execution")
         if [[ -n "${RUN_COMMAND_REQUIRED_OUTPUT_MARKER:-}" ]] && ! grep -Fq "$RUN_COMMAND_REQUIRED_OUTPUT_MARKER" <<< "$command_output"; then
-          if (( output_deadline == 0 )); then
-            output_deadline=$(( $(date +%s) + 120 ))
+          if (( output_deadlines[index] == 0 )); then
+            output_deadlines[index]=$(( $(date +%s) + 120 ))
           fi
-          if (( $(date +%s) < output_deadline )); then
-            sleep 5
+          if (( $(date +%s) < output_deadlines[index] )); then
+            still_pending+=("$index")
             continue
           fi
           printf 'Required output marker is missing for %s.\n' "$target_name" >&2
-        else
-          target_exit_code=0
+          printf 'Run Command did not succeed for %s.\n' "$target_name" >&2
+          overall_exit_code=1
         fi
-        break
         ;;
       FAILED|TIMED_OUT|CANCELED)
         printf '%s\n' "$execution" > "$result_file"
-        break
+        printf 'Run Command did not succeed for %s.\n' "$target_name" >&2
+        overall_exit_code=1
+        ;;
+      *)
+        still_pending+=("$index")
         ;;
     esac
-
-    sleep 10
   done
-
-  if (( target_exit_code != 0 )); then
-    printf 'Run Command did not succeed for %s.\n' "$target_name" >&2
-    overall_exit_code=1
+  pending=(${still_pending[@]+"${still_pending[@]}"})
+  if (( ${#pending[@]} > 0 )); then
+    sleep 5
   fi
-done < <(jq -c '.[]' <<< "$RUN_COMMAND_TARGETS")
+done
+
+for index in ${pending[@]+"${pending[@]}"}; do
+  printf 'Run Command did not succeed for %s.\n' "${target_names[index]}" >&2
+  overall_exit_code=1
+done
 
 exit "$overall_exit_code"
